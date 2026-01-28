@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aditya Rao - 23F3000019 - Audio Enhancer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            background: #e5e7eb;
+            height: 4px;
+            border-radius: 2px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: -6px;
+            background-color: #1d1d1f;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+        }
+        .preset-card:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 selection:bg-gray-200">
+
+    <div class="max-w-5xl mx-auto space-y-6">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-end justify-between border-b border-gray-300 pb-6">
+            <div class="space-y-1">
+                <a href="https://www.linkedin.com/in/adityaraoiitm/" target="_blank" rel="noopener noreferrer" class="group block">
+                    <h1 class="text-3xl font-semibold tracking-tight text-[#1d1d1f] group-hover:text-blue-900 group-hover:underline transition-all">
+                        Aditya Rao - 23F3000019
+                    </h1>
+                </a>
+                <p class="text-lg text-gray-700 font-normal">SP14 - Audio Enhancer</p>
+            </div>
+            
+            <label class="mt-4 md:mt-0 flex items-center gap-2 px-5 py-2.5 bg-[#1d1d1f] hover:bg-[#323236] text-white rounded-full transition-all cursor-pointer shadow-sm active:scale-95 text-sm font-medium">
+                <i data-lucide="upload" class="w-4 h-4"></i>
+                <span>Select Audio File</span>
+                <input type="file" id="audio-upload" class="hidden" accept="audio/*">
+            </label>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Main Control Area -->
+            <div class="lg:col-span-8 space-y-6">
+                
+                <!-- Playback Controls Card -->
+                <div class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-200 flex flex-col gap-6">
+                    <div class="space-y-2">
+                        <input type="range" id="seek-slider" min="0" max="100" step="0.01" value="0" class="w-full">
+                        <div class="flex justify-between text-[11px] font-medium text-gray-400 uppercase tracking-widest">
+                            <span id="current-time">0:00</span>
+                            <span id="file-name" class="truncate max-w-[50%]">No file selected</span>
+                            <span id="duration">0:00</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-center gap-10">
+                        <button id="reset-btn" class="p-3 text-gray-600 hover:text-[#1d1d1f] hover:bg-gray-100 rounded-full transition-all">
+                            <i data-lucide="rotate-ccw" class="w-6 h-6"></i>
+                        </button>
+                        <button id="play-pause-btn" class="w-16 h-16 bg-[#1d1d1f] text-white rounded-full flex items-center justify-center hover:scale-[1.05] active:scale-95 transition-all shadow-md">
+                            <i data-lucide="play" id="play-icon" class="w-8 h-8 fill-current ml-1"></i>
+                        </button>
+                        <button class="p-3 text-gray-200 cursor-not-allowed" disabled>
+                            <i data-lucide="download" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Presets Section -->
+                <div class="space-y-3">
+                    <h3 class="text-sm font-semibold text-gray-400 px-1 uppercase tracking-wider">Presets</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <button onclick="setVoicePreset('male')" class="preset-card bg-white border border-gray-200 p-4 rounded-xl flex flex-col transition-all hover:bg-gray-50 shadow-sm text-left group">
+                            <div class="flex items-center justify-between w-full mb-1">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-gray-100 text-gray-700 rounded-lg group-hover:bg-[#1d1d1f] group-hover:text-white transition-all">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14" r="6" /><path d="M15 9l6-6" /><path d="M16 3h5v5" /></svg>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800 tracking-tight">Male Voice</span>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 group-hover:text-[#1d1d1f]"></i>
+                            </div>
+                            <p class="text-[10px] text-gray-500 leading-snug font-medium">Low pitch with deep bass enhancement.</p>
+                        </button>
+
+                        <button onclick="setVoicePreset('female')" class="preset-card bg-white border border-gray-200 p-4 rounded-xl flex flex-col transition-all hover:bg-gray-50 shadow-sm text-left group">
+                            <div class="flex items-center justify-between w-full mb-1">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-gray-100 text-gray-700 rounded-lg group-hover:bg-[#1d1d1f] group-hover:text-white transition-all">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6" /><path d="M12 15v7" /><path d="M9 19h6" /></svg>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800 tracking-tight">Female Voice</span>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 group-hover:text-[#1d1d1f]"></i>
+                            </div>
+                            <p class="text-[10px] text-gray-500 leading-snug font-medium">High pitch with bright treble boost.</p>
+                        </button>
+
+                        <button onclick="setVoicePreset('reset')" class="preset-card bg-white border border-gray-200 p-4 rounded-xl flex flex-col transition-all hover:bg-gray-50 shadow-sm text-left group">
+                            <div class="flex items-center justify-between w-full mb-1">
+                                <div class="flex items-center gap-3">
+                                    <div class="p-2 bg-gray-100 text-gray-700 rounded-lg group-hover:bg-[#1d1d1f] group-hover:text-white transition-all">
+                                        <i data-lucide="rotate-ccw" class="w-[18px] h-[18px]"></i>
+                                    </div>
+                                    <span class="text-xs font-semibold text-gray-800 tracking-tight">Raw</span>
+                                </div>
+                                <i data-lucide="chevron-right" class="w-4 h-4 text-gray-400 group-hover:text-[#1d1d1f]"></i>
+                            </div>
+                            <p class="text-[10px] text-gray-500 leading-snug font-medium">Original audio without signal processing.</p>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar Controls -->
+            <div class="lg:col-span-4 bg-white rounded-[2rem] p-8 shadow-sm border border-gray-200 h-fit space-y-8">
+                <div class="flex items-center gap-2 pb-2 border-b border-gray-200">
+                    <i data-lucide="settings-2" class="w-[18px] h-[18px] text-[#1d1d1f]"></i>
+                    <h2 class="font-bold text-base tracking-tight text-[#1d1d1f]">Processing</h2>
+                </div>
+
+                <div class="space-y-8">
+                    <!-- Gain -->
+                    <div class="group space-y-2">
+                        <div class="flex justify-between items-center text-sm font-medium text-gray-600">
+                            <span>Master Gain</span>
+                            <span id="gain-val" class="text-xs text-gray-400 font-bold">1x</span>
+                        </div>
+                        <input type="range" id="gain-slider" min="0" max="3" step="0.01" value="1" class="w-full">
+                    </div>
+
+                    <!-- Pitch -->
+                    <div class="group space-y-2">
+                        <div class="flex justify-between items-center text-sm font-medium text-gray-600">
+                            <span>Pitch Factor</span>
+                            <span id="pitch-val" class="text-xs text-gray-400 font-bold">1x</span>
+                        </div>
+                        <input type="range" id="pitch-slider" min="0.5" max="2.0" step="0.01" value="1" class="w-full">
+                    </div>
+                    
+                    <div class="space-y-6 pt-2">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Equalization</span>
+                        <!-- Bass -->
+                        <div class="group space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium text-gray-600">
+                                <span>Bass</span>
+                                <span id="bass-val" class="text-xs text-gray-400 font-bold">0dB</span>
+                            </div>
+                            <input type="range" id="bass-slider" min="-10" max="15" step="1" value="0" class="w-full">
+                        </div>
+                        <!-- Treble -->
+                        <div class="group space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium text-gray-600">
+                                <span>Treble</span>
+                                <span id="treble-val" class="text-xs text-gray-400 font-bold">0dB</span>
+                            </div>
+                            <input type="range" id="treble-slider" min="-10" max="15" step="1" value="0" class="w-full">
+                        </div>
+                    </div>
+
+                    <div class="space-y-6 pt-2">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Audio Effects</span>
+                        <!-- Echo -->
+                        <div class="group space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium text-gray-600">
+                                <span>Echo</span>
+                                <span id="echo-val" class="text-xs text-gray-400 font-bold">0</span>
+                            </div>
+                            <input type="range" id="echo-slider" min="0" max="0.8" step="0.01" value="0" class="w-full">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="pt-8 pb-4 flex justify-center border-t border-gray-300">
+            <p class="text-[11px] font-medium text-gray-700 text-center leading-relaxed">
+                Aditya Rao - 23f3000019@es.study.iitm.ac.in - SP14 - Signal Processing Project
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // --- Web Audio State ---
+        let audioCtx, source, audioBuffer;
+        let gainNode, bassNode, trebleNode, delayNode, feedbackNode, echoGainNode;
+        let isPlaying = false;
+        let duration = 0;
+        let currentTime = 0;
+        let startTime = 0;
+        let offset = 0;
+        let timer;
+
+        // --- DOM Elements ---
+        const playBtn = document.getElementById('play-pause-btn');
+        const playIcon = document.getElementById('play-icon');
+        const upload = document.getElementById('audio-upload');
+        const fileNameDisp = document.getElementById('file-name');
+        const seekSlider = document.getElementById('seek-slider');
+        const currentTimeDisp = document.getElementById('current-time');
+        const durationDisp = document.getElementById('duration');
+        const resetBtn = document.getElementById('reset-btn');
+
+        const gainSlider = document.getElementById('gain-slider');
+        const pitchSlider = document.getElementById('pitch-slider');
+        const bassSlider = document.getElementById('bass-slider');
+        const trebleSlider = document.getElementById('treble-slider');
+        const echoSlider = document.getElementById('echo-slider');
+
+        const gainVal = document.getElementById('gain-val');
+        const pitchVal = document.getElementById('pitch-val');
+        const bassVal = document.getElementById('bass-val');
+        const trebleVal = document.getElementById('treble-val');
+        const echoVal = document.getElementById('echo-val');
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // --- Audio Logic ---
+        function initContext() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        upload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            initContext();
+            fileNameDisp.textContent = file.name;
+            
+            const arrayBuffer = await file.arrayBuffer();
+            audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            
+            duration = audioBuffer.duration;
+            durationDisp.textContent = formatTime(duration);
+            seekSlider.max = duration;
+            
+            stopPlayback();
+            offset = 0;
+            updateUIProgress();
+        });
+
+        function formatTime(time) {
+            const min = Math.floor(time / 60);
+            const sec = Math.floor(time % 60).toString().padStart(2, '0');
+            return `${min}:${sec}`;
+        }
+
+        function playPlayback() {
+            if (!audioBuffer) return;
+            initContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            if (source) {
+                source.stop();
+                source.disconnect();
+            }
+
+            source = audioCtx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.playbackRate.value = parseFloat(pitchSlider.value);
+
+            gainNode = audioCtx.createGain();
+            bassNode = audioCtx.createBiquadFilter();
+            trebleNode = audioCtx.createBiquadFilter();
+            delayNode = audioCtx.createDelay(1.0);
+            feedbackNode = audioCtx.createGain();
+            echoGainNode = audioCtx.createGain();
+
+            // Set current slider values
+            gainNode.gain.value = parseFloat(gainSlider.value);
+            bassNode.type = 'lowshelf';
+            bassNode.frequency.value = 200;
+            bassNode.gain.value = parseFloat(bassSlider.value);
+            trebleNode.type = 'highshelf';
+            trebleNode.frequency.value = 3000;
+            trebleNode.gain.value = parseFloat(trebleSlider.value);
+
+            const echoValue = parseFloat(echoSlider.value);
+            delayNode.delayTime.value = 0.4;
+            feedbackNode.gain.value = echoValue * 0.5;
+            echoGainNode.gain.value = echoValue;
+
+            // Connections
+            source.connect(bassNode);
+            bassNode.connect(trebleNode);
+            trebleNode.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            // Echo Loop
+            gainNode.connect(delayNode);
+            delayNode.connect(feedbackNode);
+            feedbackNode.connect(delayNode);
+            delayNode.connect(echoGainNode);
+            echoGainNode.connect(audioCtx.destination);
+
+            source.start(0, offset);
+            startTime = audioCtx.currentTime - (offset / source.playbackRate.value);
+            isPlaying = true;
+            updateIcons();
+
+            source.onended = () => {
+                const elapsed = (audioCtx.currentTime - startTime) * source.playbackRate.value;
+                if (elapsed >= duration - 0.1) {
+                    stopPlayback();
+                    offset = 0;
+                    updateUIProgress();
+                }
+            };
+
+            timer = setInterval(() => {
+                const elapsed = (audioCtx.currentTime - startTime) * source.playbackRate.value;
+                currentTime = elapsed;
+                updateUIProgress();
+            }, 100);
+        }
+
+        function stopPlayback() {
+            if (source) {
+                const elapsed = (audioCtx.currentTime - startTime) * source.playbackRate.value;
+                offset = elapsed >= duration ? 0 : elapsed;
+                source.stop();
+                source = null;
+            }
+            isPlaying = false;
+            clearInterval(timer);
+            updateIcons();
+        }
+
+        function updateUIProgress() {
+            seekSlider.value = isPlaying ? currentTime : offset;
+            currentTimeDisp.textContent = formatTime(isPlaying ? currentTime : offset);
+        }
+
+        function updateIcons() {
+            playIcon.setAttribute('data-lucide', isPlaying ? 'pause' : 'play');
+            if (isPlaying) {
+                playIcon.classList.remove('ml-1');
+            } else {
+                playIcon.classList.add('ml-1');
+            }
+            lucide.createIcons();
+        }
+
+        playBtn.addEventListener('click', () => {
+            if (isPlaying) stopPlayback();
+            else playPlayback();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            stopPlayback();
+            offset = 0;
+            updateUIProgress();
+        });
+
+        seekSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if (isPlaying) stopPlayback();
+            offset = val;
+            updateUIProgress();
+        });
+
+        // --- Slider Listeners ---
+        gainSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            gainVal.textContent = val.toFixed(2) + 'x';
+            if (gainNode) gainNode.gain.value = val;
+        });
+
+        pitchSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            pitchVal.textContent = val.toFixed(2) + 'x';
+            if (source) source.playbackRate.value = val;
+        });
+
+        bassSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            bassVal.textContent = val + 'dB';
+            if (bassNode) bassNode.gain.value = val;
+        });
+
+        trebleSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            trebleVal.textContent = val + 'dB';
+            if (trebleNode) trebleNode.gain.value = val;
+        });
+
+        echoSlider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            echoVal.textContent = val.toFixed(2);
+            if (echoGainNode) echoGainNode.gain.value = val;
+            if (feedbackNode) feedbackNode.gain.value = val * 0.5;
+        });
+
+        // --- Presets ---
+        window.setVoicePreset = (type) => {
+            if (type === 'female') {
+                pitchSlider.value = 1.4;
+                trebleSlider.value = 5;
+                bassSlider.value = -2;
+                echoSlider.value = 0;
+            } else if (type === 'male') {
+                pitchSlider.value = 0.85;
+                bassSlider.value = 6;
+                trebleSlider.value = -2;
+                echoSlider.value = 0;
+            } else {
+                pitchSlider.value = 1;
+                bassSlider.value = 0;
+                trebleSlider.value = 0;
+                echoSlider.value = 0;
+            }
+            // Trigger UI updates
+            ['gain', 'pitch', 'bass', 'treble', 'echo'].forEach(id => {
+                const el = document.getElementById(id + '-slider');
+                const valDisp = document.getElementById(id + '-val');
+                const val = parseFloat(el.value);
+                valDisp.textContent = (id === 'bass' || id === 'treble') ? val + 'dB' : val.toFixed(2) + (id === 'echo' ? '' : 'x');
+            });
+            // Update running nodes
+            if (source) source.playbackRate.value = parseFloat(pitchSlider.value);
+            if (bassNode) bassNode.gain.value = parseFloat(bassSlider.value);
+            if (trebleNode) trebleNode.gain.value = parseFloat(trebleSlider.value);
+            if (echoGainNode) {
+                echoGainNode.gain.value = parseFloat(echoSlider.value);
+                feedbackNode.gain.value = parseFloat(echoSlider.value) * 0.5;
+            }
+        };
+
+    </script>
+</body>
+</html>
