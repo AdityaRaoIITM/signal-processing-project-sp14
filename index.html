@@ -35,6 +35,17 @@
         .preset-card:active {
             transform: scale(0.98);
         }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8 selection:bg-gray-200">
@@ -189,6 +200,30 @@
                             <input type="range" id="echo-slider" min="0" max="0.8" step="0.01" value="0" class="w-full">
                         </div>
                     </div>
+                    
+                    <div class="space-y-6 pt-2 border-t border-gray-200 mt-6">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Signal Optimization</span>
+                        <!-- 50dB Optimization Toggle -->
+                        <div class="group space-y-2">
+                            <div class="flex justify-between items-center">
+                                <div class="flex flex-col">
+                                    <span class="text-sm font-medium text-gray-600">50dB Boost</span>
+                                    <span class="text-[10px] text-gray-400 leading-tight">Auto-amplify to 50dB</span>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="optimization-toggle" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1d1d1f]"></div>
+                                </label>
+                            </div>
+                        </div>
+                        <!-- dB Level Display -->
+                        <div class="group space-y-2">
+                            <div class="flex justify-between items-center text-sm font-medium text-gray-600">
+                                <span>Current Level</span>
+                                <span id="db-level" class="text-xs text-gray-400 font-bold">-- dB</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -204,12 +239,16 @@
         // --- Web Audio State ---
         let audioCtx, source, audioBuffer;
         let gainNode, bassNode, trebleNode, delayNode, feedbackNode, echoGainNode;
+        let analyserNode, compressorNode, optimizationGainNode;
         let isPlaying = false;
         let duration = 0;
         let currentTime = 0;
         let startTime = 0;
         let offset = 0;
         let timer;
+        let levelMonitorInterval;
+        let targetDbLevel = 50; // Target dB level for optimization
+        let optimizationEnabled = true;
 
         // --- DOM Elements ---
         const playBtn = document.getElementById('play-pause-btn');
@@ -232,6 +271,9 @@
         const bassVal = document.getElementById('bass-val');
         const trebleVal = document.getElementById('treble-val');
         const echoVal = document.getElementById('echo-val');
+        
+        const optimizationToggle = document.getElementById('optimization-toggle');
+        const dbLevelDisplay = document.getElementById('db-level');
 
         // Initialize Lucide Icons
         lucide.createIcons();
@@ -286,6 +328,9 @@
             delayNode = audioCtx.createDelay(1.0);
             feedbackNode = audioCtx.createGain();
             echoGainNode = audioCtx.createGain();
+            analyserNode = audioCtx.createAnalyser();
+            compressorNode = audioCtx.createDynamicsCompressor();
+            optimizationGainNode = audioCtx.createGain();
 
             // Set current slider values
             gainNode.gain.value = parseFloat(gainSlider.value);
@@ -300,15 +345,41 @@
             delayNode.delayTime.value = 0.4;
             feedbackNode.gain.value = echoValue * 0.5;
             echoGainNode.gain.value = echoValue;
+            
+            // Configure analyser for dB measurement
+            analyserNode.fftSize = 2048;
+            analyserNode.smoothingTimeConstant = 0.8;
+            
+            // Configure compressor for gentle dynamic range control
+            compressorNode.threshold.value = -24;
+            compressorNode.knee.value = 30;
+            compressorNode.ratio.value = 12;
+            compressorNode.attack.value = 0.003;
+            compressorNode.release.value = 0.25;
+            
+            // Initialize optimization gain
+            optimizationGainNode.gain.value = 1.0;
 
-            // Connections
+            // Connections with optimization in chain
             source.connect(bassNode);
             bassNode.connect(trebleNode);
             trebleNode.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
+            
+            if (optimizationEnabled) {
+                gainNode.connect(analyserNode);
+                analyserNode.connect(compressorNode);
+                compressorNode.connect(optimizationGainNode);
+                optimizationGainNode.connect(audioCtx.destination);
+                
+                // Start level monitoring
+                startLevelMonitoring();
+            } else {
+                gainNode.connect(audioCtx.destination);
+            }
 
             // Echo Loop
-            gainNode.connect(delayNode);
+            const echoSource = optimizationEnabled ? optimizationGainNode : gainNode;
+            echoSource.connect(delayNode);
             delayNode.connect(feedbackNode);
             feedbackNode.connect(delayNode);
             delayNode.connect(echoGainNode);
@@ -344,6 +415,7 @@
             }
             isPlaying = false;
             clearInterval(timer);
+            stopLevelMonitoring();
             updateIcons();
         }
 
@@ -411,6 +483,77 @@
             if (echoGainNode) echoGainNode.gain.value = val;
             if (feedbackNode) feedbackNode.gain.value = val * 0.5;
         });
+        
+        // --- 50dB Optimization Functions ---
+        function startLevelMonitoring() {
+            if (!analyserNode || !optimizationEnabled) return;
+            
+            levelMonitorInterval = setInterval(() => {
+                const dataArray = new Float32Array(analyserNode.frequencyBinCount);
+                analyserNode.getFloatTimeDomainData(dataArray);
+                
+                // Calculate RMS level
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) {
+                    sum += dataArray[i] * dataArray[i];
+                }
+                const rms = Math.sqrt(sum / dataArray.length);
+                
+                // Convert to dB (reference: 1.0 = 0dB)
+                const db = 20 * Math.log10(rms);
+                const currentDb = isFinite(db) ? db : -100;
+                
+                // Update display
+                if (dbLevelDisplay) {
+                    dbLevelDisplay.textContent = currentDb.toFixed(1) + ' dB';
+                    
+                    // Color coding
+                    if (currentDb < 30) {
+                        dbLevelDisplay.className = 'text-xs font-bold text-red-500';
+                    } else if (currentDb < 45) {
+                        dbLevelDisplay.className = 'text-xs font-bold text-yellow-600';
+                    } else {
+                        dbLevelDisplay.className = 'text-xs font-bold text-green-600';
+                    }
+                }
+                
+                // Auto-adjust gain to reach target 50dB
+                if (optimizationGainNode && currentDb < targetDbLevel && rms > 0.0001) {
+                    const dbDifference = targetDbLevel - currentDb;
+                    // Convert dB difference to linear gain adjustment
+                    const gainAdjustment = Math.pow(10, dbDifference / 20);
+                    // Apply with smoothing to avoid sudden jumps
+                    const targetGain = Math.min(gainAdjustment, 10); // Cap at 10x to prevent clipping
+                    const currentGain = optimizationGainNode.gain.value;
+                    const smoothedGain = currentGain + (targetGain - currentGain) * 0.1;
+                    optimizationGainNode.gain.value = smoothedGain;
+                }
+            }, 100);
+        }
+        
+        function stopLevelMonitoring() {
+            if (levelMonitorInterval) {
+                clearInterval(levelMonitorInterval);
+                levelMonitorInterval = null;
+            }
+            if (dbLevelDisplay) {
+                dbLevelDisplay.textContent = '-- dB';
+                dbLevelDisplay.className = 'text-xs font-bold text-gray-400';
+            }
+        }
+        
+        // Optimization toggle
+        if (optimizationToggle) {
+            optimizationToggle.addEventListener('change', (e) => {
+                optimizationEnabled = e.target.checked;
+                if (isPlaying) {
+                    // Restart playback with new settings
+                    const wasPlaying = isPlaying;
+                    stopPlayback();
+                    if (wasPlaying) playPlayback();
+                }
+            });
+        }
 
         // --- Presets ---
         window.setVoicePreset = (type) => {
