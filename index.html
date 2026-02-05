@@ -247,7 +247,14 @@
         let offset = 0;
         let timer;
         let levelMonitorInterval;
-        let targetDbLevel = 50; // Target dB level for optimization
+        
+        // --- 50dB Optimization Configuration ---
+        const TARGET_DB_LEVEL = 50; // Target dB level for optimization
+        const MAX_GAIN_MULTIPLIER = 10; // Maximum gain cap to prevent extreme amplification
+        const GAIN_SMOOTHING_FACTOR = 0.1; // Smoothing factor for gradual gain adjustment
+        const MIN_RMS_THRESHOLD = 0.0001; // Minimum RMS to prevent adjustment during silence
+        const DB_THRESHOLD_RED = 30; // Below this shows red (needs significant boost)
+        const DB_THRESHOLD_YELLOW = 45; // Below this shows yellow (moderate boost)
         let optimizationEnabled = true;
 
         // --- DOM Elements ---
@@ -373,13 +380,17 @@
                 
                 // Start level monitoring
                 startLevelMonitoring();
+                
+                // Echo Loop with optimized signal
+                optimizationGainNode.connect(delayNode);
             } else {
                 gainNode.connect(audioCtx.destination);
+                
+                // Echo Loop with non-optimized signal
+                gainNode.connect(delayNode);
             }
-
-            // Echo Loop
-            const echoSource = optimizationEnabled ? optimizationGainNode : gainNode;
-            echoSource.connect(delayNode);
+            
+            // Complete echo feedback chain
             delayNode.connect(feedbackNode);
             feedbackNode.connect(delayNode);
             delayNode.connect(echoGainNode);
@@ -507,10 +518,10 @@
                 if (dbLevelDisplay) {
                     dbLevelDisplay.textContent = currentDb.toFixed(1) + ' dB';
                     
-                    // Color coding
-                    if (currentDb < 30) {
+                    // Color coding based on level thresholds
+                    if (currentDb < DB_THRESHOLD_RED) {
                         dbLevelDisplay.className = 'text-xs font-bold text-red-500';
-                    } else if (currentDb < 45) {
+                    } else if (currentDb < DB_THRESHOLD_YELLOW) {
                         dbLevelDisplay.className = 'text-xs font-bold text-yellow-600';
                     } else {
                         dbLevelDisplay.className = 'text-xs font-bold text-green-600';
@@ -518,14 +529,14 @@
                 }
                 
                 // Auto-adjust gain to reach target 50dB
-                if (optimizationGainNode && currentDb < targetDbLevel && rms > 0.0001) {
-                    const dbDifference = targetDbLevel - currentDb;
+                if (optimizationGainNode && currentDb < TARGET_DB_LEVEL && rms > MIN_RMS_THRESHOLD) {
+                    const dbDifference = TARGET_DB_LEVEL - currentDb;
                     // Convert dB difference to linear gain adjustment
                     const gainAdjustment = Math.pow(10, dbDifference / 20);
                     // Apply with smoothing to avoid sudden jumps
-                    const targetGain = Math.min(gainAdjustment, 10); // Cap at 10x to prevent clipping
+                    const targetGain = Math.min(gainAdjustment, MAX_GAIN_MULTIPLIER);
                     const currentGain = optimizationGainNode.gain.value;
-                    const smoothedGain = currentGain + (targetGain - currentGain) * 0.1;
+                    const smoothedGain = currentGain + (targetGain - currentGain) * GAIN_SMOOTHING_FACTOR;
                     optimizationGainNode.gain.value = smoothedGain;
                 }
             }, 100);
