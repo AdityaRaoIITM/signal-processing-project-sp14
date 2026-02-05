@@ -207,8 +207,8 @@
                         <div class="group space-y-2">
                             <div class="flex justify-between items-center">
                                 <div class="flex flex-col">
-                                    <span class="text-sm font-medium text-gray-600">50dB Boost</span>
-                                    <span class="text-[10px] text-gray-400 leading-tight">Auto-amplify to 50dB</span>
+                                    <span class="text-sm font-medium text-gray-600">Audio Boost</span>
+                                    <span class="text-[10px] text-gray-400 leading-tight">Auto-amplify quiet audio</span>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" id="optimization-toggle" class="sr-only peer" checked>
@@ -249,12 +249,15 @@
         let levelMonitorInterval;
         
         // --- 50dB Optimization Configuration ---
-        const TARGET_DB_LEVEL = 50; // Target dB level for optimization
-        const MAX_GAIN_MULTIPLIER = 10; // Maximum gain cap to prevent extreme amplification
+        // Note: In Web Audio API, dB scale is dBFS where 0 dBFS = maximum (1.0 RMS)
+        // Target of -10 dBFS provides good loudness with 10dB headroom for clipping prevention
+        // This ensures audio below this level is amplified to a comfortable listening volume
+        const TARGET_DB_LEVEL = -10; // Target level in dBFS (equivalent to ~50dB above -60dBFS reference)
+        const MAX_GAIN_MULTIPLIER = 10; // Maximum gain cap to prevent extreme amplification  
         const GAIN_SMOOTHING_FACTOR = 0.1; // Smoothing factor for gradual gain adjustment
         const MIN_RMS_THRESHOLD = 0.0001; // Minimum RMS to prevent adjustment during silence
-        const DB_THRESHOLD_RED = 30; // Below this shows red (needs significant boost)
-        const DB_THRESHOLD_YELLOW = 45; // Below this shows yellow (moderate boost)
+        const DB_THRESHOLD_RED = -40; // Below this shows red (very quiet, needs significant boost)
+        const DB_THRESHOLD_YELLOW = -20; // Below this shows yellow (quiet, moderate boost needed)
         let optimizationEnabled = true;
 
         // --- DOM Elements ---

@@ -16,30 +16,31 @@ This is a web-based audio enhancement application that provides real-time audio 
 - **Treble Equalization**: Boost or cut high frequencies (-10 to +15dB)
 - **Echo Effect**: Add echo with adjustable intensity (0-0.8)
 
-### 50dB Signal Optimization (New)
+### Audio Boost Optimization (New)
 
-The application now includes an automatic signal optimization feature that ensures all audio is amplified to reach a target level of 50dB.
+The application now includes an automatic signal optimization feature that ensures quiet audio is amplified to a comfortable listening level.
 
 #### How It Works
 
-1. **Real-time Level Monitoring**: An AnalyserNode continuously measures the audio signal's RMS (Root Mean Square) level and converts it to decibels.
+1. **Real-time Level Monitoring**: An AnalyserNode continuously measures the audio signal's RMS (Root Mean Square) level and converts it to decibels Full Scale (dBFS).
 
-2. **Dynamic Gain Adjustment**: When audio levels fall below 50dB, the system automatically calculates the required gain boost using the formula:
+2. **Dynamic Gain Adjustment**: When audio levels fall below the target (-10 dBFS), the system automatically calculates the required gain boost using the formula:
    ```
    gainAdjustment = 10^((targetDb - currentDb) / 20)
    ```
+   The target of -10 dBFS provides loud, clear audio with 10dB headroom to prevent clipping.
 
 3. **Smooth Amplification**: The gain is applied gradually with a smoothing factor of 0.1 to prevent sudden volume jumps, ensuring a pleasant listening experience.
 
 4. **Clipping Prevention**: 
-   - Maximum gain is capped at 10x to prevent extreme amplification
+   - Maximum gain is capped at 10x (20dB boost) to prevent extreme amplification
    - A DynamicsCompressor node provides additional protection against clipping
    - Compressor settings: threshold=-24dB, ratio=12:1, attack=3ms, release=250ms
 
 5. **Visual Feedback**: The current audio level is displayed with color coding:
-   - 🔴 Red (< 30dB): Significant boost needed
-   - 🟡 Yellow (30-45dB): Moderate boost applied
-   - 🟢 Green (≥ 45dB): Optimal level achieved
+   - 🔴 Red (< -40 dBFS): Very quiet, needs significant boost
+   - 🟡 Yellow (-40 to -20 dBFS): Quiet, moderate boost applied
+   - 🟢 Green (≥ -20 dBFS): Good level achieved
 
 #### Technical Implementation
 
@@ -50,18 +51,25 @@ Analyser → Compressor → Optimization Gain → Output
 ```
 
 **Key Parameters**:
-- Target Level: 50dB
+- Target Level: -10 dBFS (loud and clear with headroom)
 - Monitoring Interval: 100ms
 - Smoothing Factor: 0.1 (10% adjustment per interval)
 - Maximum Gain: 10x (20dB boost limit)
+- dBFS Scale: 0 dBFS = maximum digital level (1.0 RMS)
 
 #### Usage
 
 1. Upload an audio file using the "Select Audio File" button
-2. The 50dB Boost is enabled by default (toggle to disable if needed)
+2. The Audio Boost is enabled by default (toggle to disable if needed)
 3. Press play and watch the "Current Level" indicator
-4. Audio below 50dB will be automatically amplified
-5. The indicator color shows the optimization status
+4. Audio below -10 dBFS will be automatically amplified to that level
+5. The indicator color shows the optimization status in real-time
+
+**Example Results**:
+- Quiet audio at -30 dBFS → Amplified by 10x → Reaches -10 dBFS ✓
+- Very quiet audio at -40 dBFS → Amplified by 10x (capped) → Reaches -20 dBFS ✓
+- Moderate audio at -20 dBFS → Amplified by 3.16x → Reaches -10 dBFS ✓
+- Already loud audio at -6 dBFS → No amplification needed ✓
 
 ### Voice Presets
 
