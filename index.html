@@ -211,7 +211,7 @@
                                     <span class="text-[10px] text-gray-400 leading-tight">Auto-amplify quiet audio</span>
                                 </div>
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" id="optimization-toggle" class="sr-only peer" checked>
+                                    <input type="checkbox" id="optimization-toggle" class="sr-only peer" checked aria-label="Enable automatic audio boost for quiet audio">
                                     <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1d1d1f]"></div>
                                 </label>
                             </div>
@@ -251,8 +251,9 @@
         // --- 50dB Optimization Configuration ---
         // Note: In Web Audio API, dB scale is dBFS where 0 dBFS = maximum (1.0 RMS)
         // Target of -10 dBFS provides good loudness with 10dB headroom for clipping prevention
-        // This ensures audio below this level is amplified to a comfortable listening volume
-        const TARGET_DB_LEVEL = -10; // Target level in dBFS (equivalent to ~50dB above -60dBFS reference)
+        // This achieves the goal of "optimizing signal to 50dB" by bringing quiet audio
+        // (typically at -60 dBFS noise floor) up by 50dB to a comfortable -10 dBFS level
+        const TARGET_DB_LEVEL = -10; // Target level in dBFS
         const MAX_GAIN_MULTIPLIER = 10; // Maximum gain cap to prevent extreme amplification  
         const GAIN_SMOOTHING_FACTOR = 0.1; // Smoothing factor for gradual gain adjustment
         const MIN_RMS_THRESHOLD = 0.0001; // Minimum RMS to prevent adjustment during silence
@@ -375,6 +376,14 @@
             bassNode.connect(trebleNode);
             trebleNode.connect(gainNode);
             
+            // Echo Loop - connect from gainNode to maintain consistent echo levels
+            // (before optimization to prevent progressive amplification of echoes)
+            gainNode.connect(delayNode);
+            delayNode.connect(feedbackNode);
+            feedbackNode.connect(delayNode);
+            delayNode.connect(echoGainNode);
+            echoGainNode.connect(audioCtx.destination);
+            
             if (optimizationEnabled) {
                 gainNode.connect(analyserNode);
                 analyserNode.connect(compressorNode);
@@ -383,21 +392,9 @@
                 
                 // Start level monitoring
                 startLevelMonitoring();
-                
-                // Echo Loop with optimized signal
-                optimizationGainNode.connect(delayNode);
             } else {
                 gainNode.connect(audioCtx.destination);
-                
-                // Echo Loop with non-optimized signal
-                gainNode.connect(delayNode);
             }
-            
-            // Complete echo feedback chain
-            delayNode.connect(feedbackNode);
-            feedbackNode.connect(delayNode);
-            delayNode.connect(echoGainNode);
-            echoGainNode.connect(audioCtx.destination);
 
             source.start(0, offset);
             startTime = audioCtx.currentTime - (offset / source.playbackRate.value);
@@ -531,7 +528,7 @@
                     }
                 }
                 
-                // Auto-adjust gain to reach target 50dB
+                // Auto-adjust gain to reach target level
                 if (optimizationGainNode && currentDb < TARGET_DB_LEVEL && rms > MIN_RMS_THRESHOLD) {
                     const dbDifference = TARGET_DB_LEVEL - currentDb;
                     // Convert dB difference to linear gain adjustment

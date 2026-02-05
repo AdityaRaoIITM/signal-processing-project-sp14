@@ -1,11 +1,11 @@
-# Audio Enhancer with 50dB Signal Optimization
+# Audio Enhancer with Automatic Signal Optimization
 
 **SP14 - Signal Processing Project**  
 **Aditya Rao - 23F3000019**
 
 ## Overview
 
-This is a web-based audio enhancement application that provides real-time audio processing with advanced signal optimization capabilities.
+This is a web-based audio enhancement application that provides real-time audio processing with advanced automatic signal optimization. The application addresses the goal of optimizing signal output by automatically amplifying quiet audio (below -10 dBFS) to a comfortable listening level, effectively providing up to 50dB of gain for very quiet content.
 
 ## Features
 
