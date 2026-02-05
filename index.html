@@ -448,6 +448,7 @@
                 }
             });
             // Update running nodes
+            if (gainNode) gainNode.gain.value = dbToGain(parseFloat(gainSlider.value));
             if (source) source.playbackRate.value = parseFloat(pitchSlider.value);
             if (bassNode) bassNode.gain.value = parseFloat(bassSlider.value);
             if (trebleNode) trebleNode.gain.value = parseFloat(trebleSlider.value);
