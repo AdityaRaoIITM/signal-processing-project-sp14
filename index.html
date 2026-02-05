@@ -193,6 +193,15 @@
             </div>
         </div>
 
+        <section class="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-200 space-y-4">
+            <div class="flex items-center gap-2">
+                <i data-lucide="activity" class="w-4 h-4 text-[#1d1d1f]"></i>
+                <h2 class="text-base font-bold tracking-tight text-[#1d1d1f]">Network Bottlenecks</h2>
+            </div>
+            <p id="network-summary" class="text-xs text-gray-500">Loading network metrics...</p>
+            <ul id="network-list" class="space-y-2 text-xs"></ul>
+        </section>
+
         <footer class="pt-8 pb-4 flex justify-center border-t border-gray-300">
             <p class="text-[11px] font-medium text-gray-700 text-center leading-relaxed">
                 Aditya Rao - 23f3000019@es.study.iitm.ac.in - SP14 - Signal Processing Project
@@ -232,9 +241,80 @@
         const bassVal = document.getElementById('bass-val');
         const trebleVal = document.getElementById('treble-val');
         const echoVal = document.getElementById('echo-val');
+        const networkSummary = document.getElementById('network-summary');
+        const networkList = document.getElementById('network-list');
 
         // Initialize Lucide Icons
-        lucide.createIcons();
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+
+        function renderNetworkBottlenecks() {
+            if (!networkSummary || !networkList) return;
+            const entries = performance.getEntriesByType('resource');
+            if (!entries.length) {
+                networkSummary.textContent = 'No resource timing data available.';
+                networkList.innerHTML = '<li class="text-gray-400">No network resources detected.</li>';
+                return;
+            }
+
+            const slowThreshold = 200;
+            const resources = entries.reduce((accumulator, entry) => {
+                const duration = Math.round(entry.responseEnd - entry.startTime);
+                if (!Number.isFinite(duration) || duration <= 0) return accumulator;
+                let host = entry.name;
+                if (entry.name.startsWith('http')) {
+                    try {
+                        host = new URL(entry.name).hostname || entry.name;
+                    } catch (error) {
+                        // Ignore invalid URLs from opaque entries.
+                    }
+                }
+                accumulator.push({ name: entry.name, duration, host });
+                return accumulator;
+            }, []).sort((a, b) => b.duration - a.duration);
+
+            if (!resources.length) {
+                networkSummary.textContent = 'No valid resource timing data available.';
+                networkList.innerHTML = '<li class="text-gray-400">No network resources detected.</li>';
+                return;
+            }
+
+            const slowResources = resources.filter((resource) => resource.duration >= slowThreshold);
+            const visibleCount = Math.min(5, resources.length);
+            networkSummary.textContent = slowResources.length
+                ? `${slowResources.length} potential bottleneck${slowResources.length === 1 ? '' : 's'} over ${slowThreshold}ms. Showing top ${visibleCount}.`
+                : `No resources slower than ${slowThreshold}ms. Showing top ${visibleCount}.`;
+
+            networkList.innerHTML = '';
+            resources.slice(0, visibleCount).forEach((resource) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2';
+
+                const details = document.createElement('div');
+                details.className = 'min-w-0';
+
+                const name = document.createElement('p');
+                name.className = 'font-semibold text-gray-700 truncate';
+                name.textContent = resource.host;
+
+                const url = document.createElement('p');
+                url.className = 'text-[10px] text-gray-400 truncate';
+                url.textContent = resource.name;
+
+                const time = document.createElement('span');
+                time.className = `text-xs font-semibold ${resource.duration >= slowThreshold ? 'text-red-600' : 'text-gray-600'}`;
+                time.textContent = `${resource.duration} ms`;
+
+                details.append(name, url);
+                li.append(details, time);
+                networkList.appendChild(li);
+            });
+        }
+
+        window.addEventListener('load', () => {
+            setTimeout(renderNetworkBottlenecks, 200);
+        });
 
         // --- Audio Logic ---
         function initContext() {
@@ -359,7 +439,9 @@
             } else {
                 playIcon.classList.add('ml-1');
             }
-            lucide.createIcons();
+            if (window.lucide) {
+                lucide.createIcons();
+            }
         }
 
         playBtn.addEventListener('click', () => {
