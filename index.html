@@ -144,9 +144,9 @@
                     <div class="group space-y-2">
                         <div class="flex justify-between items-center text-sm font-medium text-gray-600">
                             <span>Master Gain</span>
-                            <span id="gain-val" class="text-xs text-gray-400 font-bold">1x</span>
+                            <span id="gain-val" class="text-xs text-gray-400 font-bold">50dB</span>
                         </div>
-                        <input type="range" id="gain-slider" min="0" max="3" step="0.01" value="1" class="w-full">
+                        <input type="range" id="gain-slider" min="0" max="50" step="0.5" value="50" class="w-full">
                     </div>
 
                     <!-- Pitch -->
@@ -164,9 +164,9 @@
                         <div class="group space-y-2">
                             <div class="flex justify-between items-center text-sm font-medium text-gray-600">
                                 <span>Bass</span>
-                                <span id="bass-val" class="text-xs text-gray-400 font-bold">0dB</span>
+                                <span id="bass-val" class="text-xs text-gray-400 font-bold">6dB</span>
                             </div>
-                            <input type="range" id="bass-slider" min="-10" max="15" step="1" value="0" class="w-full">
+                            <input type="range" id="bass-slider" min="-10" max="15" step="1" value="6" class="w-full">
                         </div>
                         <!-- Treble -->
                         <div class="group space-y-2">
@@ -346,6 +346,10 @@
             return `${min}:${sec}`;
         }
 
+        function dbToGain(db) {
+            return Math.pow(10, db / 20);
+        }
+
         function playPlayback() {
             if (!audioBuffer) return;
             initContext();
@@ -368,9 +372,9 @@
             echoGainNode = audioCtx.createGain();
 
             // Set current slider values
-            gainNode.gain.value = parseFloat(gainSlider.value);
+            gainNode.gain.value = dbToGain(parseFloat(gainSlider.value));
             bassNode.type = 'lowshelf';
-            bassNode.frequency.value = 200;
+            bassNode.frequency.value = 120;
             bassNode.gain.value = parseFloat(bassSlider.value);
             trebleNode.type = 'highshelf';
             trebleNode.frequency.value = 3000;
@@ -465,8 +469,8 @@
         // --- Slider Listeners ---
         gainSlider.addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
-            gainVal.textContent = val.toFixed(2) + 'x';
-            if (gainNode) gainNode.gain.value = val;
+            gainVal.textContent = val.toFixed(1) + 'dB';
+            if (gainNode) gainNode.gain.value = dbToGain(val);
         });
 
         pitchSlider.addEventListener('input', (e) => {
@@ -517,9 +521,16 @@
                 const el = document.getElementById(id + '-slider');
                 const valDisp = document.getElementById(id + '-val');
                 const val = parseFloat(el.value);
-                valDisp.textContent = (id === 'bass' || id === 'treble') ? val + 'dB' : val.toFixed(2) + (id === 'echo' ? '' : 'x');
+                if (id === 'bass' || id === 'treble') {
+                    valDisp.textContent = val + 'dB';
+                } else if (id === 'gain') {
+                    valDisp.textContent = val.toFixed(1) + 'dB';
+                } else {
+                    valDisp.textContent = val.toFixed(2) + (id === 'echo' ? '' : 'x');
+                }
             });
             // Update running nodes
+            if (gainNode) gainNode.gain.value = dbToGain(parseFloat(gainSlider.value));
             if (source) source.playbackRate.value = parseFloat(pitchSlider.value);
             if (bassNode) bassNode.gain.value = parseFloat(bassSlider.value);
             if (trebleNode) trebleNode.gain.value = parseFloat(trebleSlider.value);
